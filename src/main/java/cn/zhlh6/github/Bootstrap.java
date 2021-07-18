@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
 
 /**
  * create 2021/7/16 22:22
@@ -26,7 +27,8 @@ public class Bootstrap {
 
     private static ChannelFuture init() throws InterruptedException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
         //init logger
-        DOMConfigurator.configure("config/log4j.xml");
+        final URL logConfigURL = Bootstrap.class.getClassLoader().getResource("config/log4j.xml");
+        DOMConfigurator.configure(logConfigURL);
         log.info("SSH-Forward start up...");
 
         //load dotenv file to system environment
