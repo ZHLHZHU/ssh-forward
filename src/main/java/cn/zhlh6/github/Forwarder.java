@@ -54,7 +54,7 @@ public class Forwarder extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws InterruptedException {
         final AttributeKey<Boolean> attributeKey = AttributeKey.valueOf(IS_SSH_FLAG);
         if (ctx.channel().attr(attributeKey).get() == null) {
             final ByteBuf byteBuf = (ByteBuf) msg;
@@ -70,6 +70,12 @@ public class Forwarder extends ChannelInboundHandlerAdapter {
                 return;
             }
             ctx.channel().attr(attributeKey).set(true);
+        }
+        //todo NPE error
+        if (outboundChannel == null) {
+            // temporary deal
+            ctx.channel().close().sync();
+            return;
         }
         outboundChannel.writeAndFlush(msg);
     }
