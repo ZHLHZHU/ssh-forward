@@ -1,2 +1,2 @@
-# fastgithub-sshforward
-github加速，利用ssh转发
+# ssh-forward
+netty实现的ssh转发器
