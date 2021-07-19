@@ -43,13 +43,14 @@ public class Bootstrap {
         final NioEventLoopGroup boss = new NioEventLoopGroup();
         final NioEventLoopGroup worker = new NioEventLoopGroup();
         final ServerBootstrap booster = new ServerBootstrap();
+        final NioEventLoopGroup clientWorker = new NioEventLoopGroup();
         booster.group(boss, worker)
                 .channel(NioServerSocketChannel.class)
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel socketChannel) {
                         socketChannel.pipeline().addFirst(new ChannelTrafficShapingHandler(Configuration.CLIENT_SPEED_LIMIT, Configuration.CLIENT_SPEED_LIMIT));
-                        socketChannel.pipeline().addLast(new Forwarder());
+                        socketChannel.pipeline().addLast(new Forwarder(clientWorker));
                     }
                 })
                 .option(ChannelOption.SO_BACKLOG, 128)

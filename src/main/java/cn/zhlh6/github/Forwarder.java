@@ -24,7 +24,7 @@ public class Forwarder extends ChannelInboundHandlerAdapter {
 
     Channel outboundChannel;
 
-    final NioEventLoopGroup worker = new NioEventLoopGroup();
+    final NioEventLoopGroup worker;
 
     private static final String UPSTREAM_HOST = "github.com";
 
@@ -33,6 +33,10 @@ public class Forwarder extends ChannelInboundHandlerAdapter {
     private static final String IS_SSH_FLAG = "isSSH";
 
     private static final byte[] CHECK_TRAIT = new byte[]{0x53, 0x53, 0x48};
+
+    public Forwarder(NioEventLoopGroup worker) {
+        this.worker = worker;
+    }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws InterruptedException {
