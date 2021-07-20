@@ -94,9 +94,10 @@ class Forwarder extends ChannelInboundHandlerAdapter {
             log.warn("read complete");
             if (future.isSuccess()) {
                 log.warn("read...");
-                ctx.channel().read();
+                inboundChannel.read();
             } else {
                 log.warn("close");
+                outboundChannel.close();
                 inboundChannel.close();
             }
         });
