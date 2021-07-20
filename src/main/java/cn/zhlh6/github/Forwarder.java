@@ -2,10 +2,8 @@ package cn.zhlh6.github;
 
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelInitializer;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -42,6 +40,7 @@ public class Forwarder extends ChannelInboundHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws InterruptedException {
         inboundChannel = ctx.channel();
         final io.netty.bootstrap.Bootstrap b = new io.netty.bootstrap.Bootstrap();
+        b.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
         b.group(worker).channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<SocketChannel>() {
                              @Override
@@ -62,7 +61,7 @@ public class Forwarder extends ChannelInboundHandlerAdapter {
         final AttributeKey<Boolean> attributeKey = AttributeKey.valueOf(IS_SSH_FLAG);
         if (ctx.channel().attr(attributeKey).get() == null) {
             final ByteBuf byteBuf = (ByteBuf) msg;
-            if (!byteBuf.isReadable(3)) {
+            if (!byteBuf.isReadable(CHECK_TRAIT.length)) {
                 ctx.channel().close();
                 return;
             }
