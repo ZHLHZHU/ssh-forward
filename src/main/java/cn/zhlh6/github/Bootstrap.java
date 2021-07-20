@@ -56,8 +56,8 @@ public class Bootstrap {
                 })
                 .option(ChannelOption.SO_BACKLOG, 128)
                 .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-                .childOption(ChannelOption.SO_KEEPALIVE, true)
-                .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
+                .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+                .childOption(ChannelOption.AUTO_READ, false);
 
         //listen stop signal
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

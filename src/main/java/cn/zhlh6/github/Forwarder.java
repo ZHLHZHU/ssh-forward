@@ -3,6 +3,7 @@ package cn.zhlh6.github;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -15,15 +16,15 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 
-public class Forwarder extends ChannelInboundHandlerAdapter {
+class Forwarder extends ChannelInboundHandlerAdapter {
 
-    Logger log = LoggerFactory.getLogger(Forwarder.class);
+    private final Logger log = LoggerFactory.getLogger(Forwarder.class);
 
-    Channel inboundChannel;
+    private Channel inboundChannel;
 
-    Channel outboundChannel;
+    private Channel outboundChannel;
 
-    final NioEventLoopGroup worker;
+    private final NioEventLoopGroup worker;
 
     private static final String UPSTREAM_HOST = "github.com";
 
@@ -37,11 +38,13 @@ public class Forwarder extends ChannelInboundHandlerAdapter {
         this.worker = worker;
     }
 
+
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws InterruptedException {
+    public void channelActive(ChannelHandlerContext ctx) {
         inboundChannel = ctx.channel();
         final io.netty.bootstrap.Bootstrap b = new io.netty.bootstrap.Bootstrap();
         b.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
+        b.option(ChannelOption.AUTO_READ, false);
         b.group(worker).channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<SocketChannel>() {
                              @Override
@@ -50,46 +53,74 @@ public class Forwarder extends ChannelInboundHandlerAdapter {
                                          Configuration.UPSTREAM_SPEED_LIMIT,
                                          Configuration.UPSTREAM_SPEED_LIMIT)
                                  );
-                                 ch.pipeline().addLast(new Upstream());
+                                 ch.pipeline().addLast(new Forwarder.Upstream());
                              }
                          }
                 );
-        b.connect(UPSTREAM_HOST, UPSTREAM_PORT).sync();
+        b.connect(UPSTREAM_HOST, UPSTREAM_PORT).addListener(future -> {
+            if (future.isSuccess()) {
+                inboundChannel.read();
+            } else {
+                inboundChannel.close();
+            }
+        });
         final InetSocketAddress address = (InetSocketAddress) inboundChannel.remoteAddress();
         log.info("request from [{}]:{}", address.getHostName(), address.getPort());
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws InterruptedException {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        log.info("read from client");
         final AttributeKey<Boolean> attributeKey = AttributeKey.valueOf(IS_SSH_FLAG);
         if (ctx.channel().attr(attributeKey).get() == null) {
-            final ByteBuf byteBuf = (ByteBuf) msg;
+            ByteBuf byteBuf = (ByteBuf) msg;
             if (!byteBuf.isReadable(CHECK_TRAIT.length)) {
-                ctx.channel().close();
+                closeAndFlush(ctx.channel());
                 return;
             }
             byte[] headBytes = new byte[CHECK_TRAIT.length];
             byteBuf.getBytes(0, headBytes);
             if (!Arrays.equals(headBytes, CHECK_TRAIT)) {
-                ctx.channel().close();
+                closeAndFlush(ctx.channel());
                 log.warn("receive unknown protocol data,first {} bytes: [{}]", CHECK_TRAIT.length, Arrays.toString(headBytes));
                 return;
             }
             ctx.channel().attr(attributeKey).set(true);
         }
-        //todo NPE error
-        if (outboundChannel == null) {
-            // temporary deal
-            ctx.channel().close().sync();
+        if (!outboundChannel.isActive()) {
             return;
         }
-        outboundChannel.writeAndFlush(msg);
+        outboundChannel.writeAndFlush(msg).addListener(future -> {
+            log.warn("read complete");
+            if (future.isSuccess()) {
+                log.warn("read...");
+                ctx.channel().read();
+            } else {
+                log.warn("close");
+                inboundChannel.close();
+            }
+        });
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) {
+        if (outboundChannel != null) {
+            closeAndFlush(outboundChannel);
+        }
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        ctx.close();
+        outboundChannel.close();
+        closeAndFlush(ctx.channel());
         log.error("error:", cause);
+    }
+
+
+    private void closeAndFlush(Channel channel) {
+        if (channel.isActive()) {
+            channel.write(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
+        }
     }
 
     class Upstream extends ChannelInboundHandlerAdapter {
@@ -101,14 +132,26 @@ public class Forwarder extends ChannelInboundHandlerAdapter {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            inboundChannel.writeAndFlush(msg);
+            log.info("fetch data from upstream");
+            inboundChannel.writeAndFlush(msg).addListener(future -> {
+                if (future.isSuccess()) {
+                    outboundChannel.read();
+                } else {
+                    outboundChannel.close();
+                }
+            });
+        }
+
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) {
+            closeAndFlush(inboundChannel);
         }
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-            ctx.close();
+            closeAndFlush(ctx.channel());
             log.error("error:", cause);
         }
     }
-
 }
+
