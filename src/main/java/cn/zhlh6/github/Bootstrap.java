@@ -2,6 +2,7 @@ package cn.zhlh6.github;
 
 import io.github.cdimascio.dotenv.Dotenv;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -40,7 +41,7 @@ public class Bootstrap {
         Configuration.load();
 
         //init server
-        final NioEventLoopGroup boss = new NioEventLoopGroup();
+        final NioEventLoopGroup boss = new NioEventLoopGroup(1);
         final NioEventLoopGroup worker = new NioEventLoopGroup();
         final ServerBootstrap booster = new ServerBootstrap();
         final NioEventLoopGroup clientWorker = new NioEventLoopGroup();
@@ -54,7 +55,9 @@ public class Bootstrap {
                     }
                 })
                 .option(ChannelOption.SO_BACKLOG, 128)
-                .childOption(ChannelOption.SO_KEEPALIVE, true);
+                .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+                .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+                .childOption(ChannelOption.AUTO_READ, false);
 
         //listen stop signal
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
