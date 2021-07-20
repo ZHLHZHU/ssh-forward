@@ -91,7 +91,6 @@ class Forwarder extends ChannelInboundHandlerAdapter {
             return;
         }
         outboundChannel.writeAndFlush(msg).addListener(future -> {
-            log.warn("read complete");
             if (future.isSuccess()) {
                 inboundChannel.read();
             } else {
@@ -132,7 +131,6 @@ class Forwarder extends ChannelInboundHandlerAdapter {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            log.info("fetch data from upstream");
             inboundChannel.writeAndFlush(msg).addListener((ChannelFuture future) -> {
                 if (future.isSuccess()) {
                     outboundChannel.read();
