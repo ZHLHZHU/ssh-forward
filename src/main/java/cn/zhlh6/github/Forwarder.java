@@ -71,7 +71,6 @@ class Forwarder extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        log.info("read from client");
         final AttributeKey<Boolean> attributeKey = AttributeKey.valueOf(IS_SSH_FLAG);
         if (ctx.channel().attr(attributeKey).get() == null) {
             ByteBuf byteBuf = (ByteBuf) msg;
@@ -94,10 +93,8 @@ class Forwarder extends ChannelInboundHandlerAdapter {
         outboundChannel.writeAndFlush(msg).addListener(future -> {
             log.warn("read complete");
             if (future.isSuccess()) {
-                log.warn("read...");
                 inboundChannel.read();
             } else {
-                log.warn("close");
                 outboundChannel.close();
                 inboundChannel.close();
             }
