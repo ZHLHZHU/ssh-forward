@@ -12,6 +12,7 @@ import io.netty.util.AttributeKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 
 public class Forwarder extends ChannelInboundHandlerAdapter {
@@ -54,6 +55,8 @@ public class Forwarder extends ChannelInboundHandlerAdapter {
                          }
                 );
         b.connect(UPSTREAM_HOST, UPSTREAM_PORT).sync();
+        final InetSocketAddress address = (InetSocketAddress) inboundChannel.remoteAddress();
+        log.info("request from [{}]:{}", address.getHostName(), address.getPort());
     }
 
     @Override
