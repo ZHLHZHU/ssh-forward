@@ -57,7 +57,8 @@ class Forwarder extends ChannelInboundHandlerAdapter {
                              }
                          }
                 );
-        b.connect(UPSTREAM_HOST, UPSTREAM_PORT).addListener(future -> {
+        final ChannelFuture channelFuture = b.connect(UPSTREAM_HOST, UPSTREAM_PORT);
+        channelFuture.addListener(future -> {
             if (future.isSuccess()) {
                 inboundChannel.read();
             } else {
@@ -94,7 +95,7 @@ class Forwarder extends ChannelInboundHandlerAdapter {
             log.warn("read complete");
             if (future.isSuccess()) {
                 log.warn("read...");
-                inboundChannel.read();
+                ctx.channel().read();
             } else {
                 log.warn("close");
                 outboundChannel.close();
@@ -134,11 +135,13 @@ class Forwarder extends ChannelInboundHandlerAdapter {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             log.info("fetch data from upstream");
-            inboundChannel.writeAndFlush(msg).addListener(future -> {
+            inboundChannel.writeAndFlush(msg).addListener((ChannelFuture future) -> {
                 if (future.isSuccess()) {
-                    outboundChannel.read();
+                    ctx.channel().read();
+//                    outboundChannel.read();
                 } else {
-                    outboundChannel.close();
+                    future.channel().close();
+//                    outboundChannel.close();
                 }
             });
         }
