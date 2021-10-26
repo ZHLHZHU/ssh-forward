@@ -25,3 +25,6 @@ hs_err_pid*
 
 #dotenv
 .env
+
+.idea
+
