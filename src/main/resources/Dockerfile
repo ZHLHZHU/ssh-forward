@@ -8,5 +8,7 @@ RUN cd /app/build \
 FROM openjdk:11-jdk-oracle
 WORKDIR /app
 COPY --from=maven-build /app/build/target/sshforward*.jar /app/sshforward.jar
+COPY --from=maven-build /app/build/src/main/resources/jmx_prometheus_javaagent-0.16.1.jar /app/jmx_exporter.jar
+COPY --from=maven-build /app/build/src/main/resources/jmx-config.yml /app/jmx-config.yml
 EXPOSE 22
-ENTRYPOINT ["java","-jar","/app/sshforward.jar"]
+ENTRYPOINT ["java","-javaagent:/app/jmx_exporter.jar=9100:/app/jmx-config.yml","-jar","/app/sshforward.jar"]

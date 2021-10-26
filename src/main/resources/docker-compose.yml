@@ -1,0 +1,14 @@
+version: '3'
+services:
+  sshforward1:
+    image: 'sshforward'
+    ports:
+      - "9001:22"
+      - "9101:9100"
+    environment:
+      LISTEN_HOST: localhost
+      LISTEN_PORT: 22
+      CLIENT_SPEED_LIMIT: 2048000
+      UPSTREAM_HOST: github.com
+      UPSTREAM_PORT: 22
+      UPSTREAM_SPEED_LIMIT: 0
