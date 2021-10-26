@@ -1,7 +1,8 @@
 version: '3'
 services:
   sshforward1:
-    image: 'sshforward'
+    build:
+      context: .
     ports:
       - "9001:22"
       - "9101:9100"
