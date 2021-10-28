@@ -58,6 +58,7 @@ class Forwarder extends ChannelInboundHandlerAdapter {
                          }
                 );
         final ChannelFuture channelFuture = b.connect(UPSTREAM_HOST, UPSTREAM_PORT);
+        outboundChannel =  channelFuture.channel();
         channelFuture.addListener(future -> {
             if (future.isSuccess()) {
                 inboundChannel.read();
@@ -126,7 +127,6 @@ class Forwarder extends ChannelInboundHandlerAdapter {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
-            outboundChannel = ctx.channel();
             outboundChannel.read();
         }
 
