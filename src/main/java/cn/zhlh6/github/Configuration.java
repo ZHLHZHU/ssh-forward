@@ -40,7 +40,7 @@ public class Configuration {
     /**
      * 监听地址
      */
-    static String LISTEN_HOST = "127.0.0.1";
+    static String LISTEN_HOST = "0.0.0.0";
     /**
      * 监听端口
      */
