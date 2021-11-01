@@ -115,12 +115,6 @@ class Forwarder extends ChannelInboundHandlerAdapter {
     private void closeLink() {
         inboundChannel.close();
         outboundChannel.close();
-//        if (inboundChannel.isActive()) {
-//            inboundChannel.write(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
-//        }
-//        if (outboundChannel.isActive()) {
-//            outboundChannel.write(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
-//        }
     }
 
     class Upstream extends ChannelInboundHandlerAdapter {
