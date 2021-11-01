@@ -3,7 +3,6 @@ package cn.zhlh6.github;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -38,7 +37,6 @@ class Forwarder extends ChannelInboundHandlerAdapter {
         this.worker = worker;
     }
 
-
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         inboundChannel = ctx.channel();
@@ -63,7 +61,7 @@ class Forwarder extends ChannelInboundHandlerAdapter {
             if (future.isSuccess()) {
                 inboundChannel.read();
             } else {
-                closeAndFlush();
+                closeLink();
             }
         });
         final InetSocketAddress address = (InetSocketAddress) inboundChannel.remoteAddress();
@@ -76,13 +74,13 @@ class Forwarder extends ChannelInboundHandlerAdapter {
         if (ctx.channel().attr(attributeKey).get() == null) {
             ByteBuf byteBuf = (ByteBuf) msg;
             if (!byteBuf.isReadable(CHECK_TRAIT.length)) {
-                closeAndFlush();
+                closeLink();
                 return;
             }
             byte[] headBytes = new byte[CHECK_TRAIT.length];
             byteBuf.getBytes(0, headBytes);
             if (!Arrays.equals(headBytes, CHECK_TRAIT)) {
-                closeAndFlush();
+                closeLink();
                 log.warn("receive unknown protocol data,first {} bytes: [{}]", CHECK_TRAIT.length, Arrays.toString(headBytes));
                 return;
             }
@@ -95,7 +93,7 @@ class Forwarder extends ChannelInboundHandlerAdapter {
             if (future.isSuccess()) {
                 inboundChannel.read();
             } else {
-                closeAndFlush();
+                closeLink();
             }
         });
     }
@@ -103,24 +101,26 @@ class Forwarder extends ChannelInboundHandlerAdapter {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
         if (outboundChannel != null) {
-            closeAndFlush();
+            closeLink();
         }
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        closeAndFlush();
+        closeLink();
         log.error("error:", cause);
     }
 
 
-    private void closeAndFlush() {
-        if (inboundChannel.isActive()) {
-            inboundChannel.write(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
-        }
-        if (outboundChannel.isActive()) {
-            outboundChannel.write(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
-        }
+    private void closeLink() {
+        inboundChannel.close();
+        outboundChannel.close();
+//        if (inboundChannel.isActive()) {
+//            inboundChannel.write(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
+//        }
+//        if (outboundChannel.isActive()) {
+//            outboundChannel.write(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
+//        }
     }
 
     class Upstream extends ChannelInboundHandlerAdapter {
@@ -136,19 +136,19 @@ class Forwarder extends ChannelInboundHandlerAdapter {
                 if (future.isSuccess()) {
                     outboundChannel.read();
                 } else {
-                    closeAndFlush();
+                    closeLink();
                 }
             });
         }
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
-            closeAndFlush();
+            closeLink();
         }
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-            closeAndFlush();
+            closeLink();
             log.error("error:", cause);
         }
     }
