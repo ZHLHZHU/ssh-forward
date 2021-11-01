@@ -23,6 +23,7 @@ class Forwarder extends ChannelInboundHandlerAdapter {
 
     private Channel outboundChannel;
 
+
     private final NioEventLoopGroup worker;
 
     private static final String UPSTREAM_HOST = "github.com";
@@ -69,7 +70,7 @@ class Forwarder extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws InterruptedException {
         final AttributeKey<Boolean> attributeKey = AttributeKey.valueOf(IS_SSH_FLAG);
         if (ctx.channel().attr(attributeKey).get() == null) {
             ByteBuf byteBuf = (ByteBuf) msg;
@@ -103,6 +104,7 @@ class Forwarder extends ChannelInboundHandlerAdapter {
         if (outboundChannel != null) {
             closeLink();
         }
+
     }
 
     @Override
